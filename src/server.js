@@ -1,228 +1,3 @@
-// import "dotenv/config";
-// import express from "express";
-// import cors from "cors";
-// import helmet from "helmet";
-
-// import connectDB from "./config/db.js";
-// import transporter, {
-//   verifyMailConnection
-// } from "./config/mail.js";
-
-// import contactRoutes from "./routes/contactRoutes.js";
-
-// import errorHandler from "./middleware/errorHandler.js";
-
-
-// // ==========================================
-// // ENVIRONMENT VALIDATION
-// // ==========================================
-
-// const requiredEnvironmentVariables = [
-//   "MONGODB_URI",
-//   "ADMIN_EMAIL",
-//   "MAIL_HOST",
-//   "MAIL_PORT",
-//   "MAIL_USER",
-//   "MAIL_APP_PASSWORD"
-// ];
-
-// const missingVariables =
-//   requiredEnvironmentVariables.filter(
-//     (key) => !process.env[key]
-//   );
-
-// if (missingVariables.length > 0) {
-//   console.error(
-//     `Missing environment variables: ${missingVariables.join(
-//       ", "
-//     )}`
-//   );
-
-//   process.exit(1);
-// }
-
-
-// // ==========================================
-// // APP
-// // ==========================================
-
-// const app = express();
-
-
-// // ==========================================
-// // SECURITY
-// // ==========================================
-
-// app.disable("x-powered-by");
-
-// app.use(
-//   helmet()
-// );
-
-
-// // ==========================================
-// // CORS
-// // ==========================================
-
-// const allowedOrigins = (
-//   process.env.FRONTEND_URL ||
-//   "http://localhost:5173"
-// )
-//   .split(",")
-//   .map((origin) => origin.trim())
-//   .filter(Boolean);
-
-// app.use(
-//   cors({
-//     origin: (origin, callback) => {
-
-//       // Allow Postman/server-to-server requests
-//       if (!origin) {
-//         return callback(null, true);
-//       }
-
-//       if (allowedOrigins.includes(origin)) {
-//         return callback(null, true);
-//       }
-
-//       return callback(
-//         new Error("CORS origin not allowed")
-//       );
-//     },
-
-//     methods: ["POST", "GET", "OPTIONS"],
-
-//     allowedHeaders: [
-//       "Content-Type",
-//       "Authorization"
-//     ]
-//   })
-// );
-
-
-// // ==========================================
-// // BODY PARSER
-// // ==========================================
-
-// app.use(
-//   express.json({
-//     limit: "10kb"
-//   })
-// );
-
-// app.use(
-//   express.urlencoded({
-//     extended: true,
-//     limit: "10kb"
-//   })
-// );
-
-
-// // ==========================================
-// // HEALTH CHECK
-// // ==========================================
-
-// app.get("/api/health", (req, res) => {
-//   res.status(200).json({
-//     success: true,
-//     message: "Backend API is running",
-//     database: "MongoDB",
-//     timestamp: new Date().toISOString()
-//   });
-// });
-
-
-// // ==========================================
-// // CONTACT API
-// // ==========================================
-
-// app.use(
-//   "/api/contact",
-//   contactRoutes
-// );
-
-
-// // ==========================================
-// // 404
-// // ==========================================
-
-// app.use((req, res) => {
-//   res.status(404).json({
-//     success: false,
-//     message: "API endpoint not found"
-//   });
-// });
-
-
-// // ==========================================
-// // GLOBAL ERROR HANDLER
-// // ==========================================
-
-// app.use(errorHandler);
-
-
-// // ==========================================
-// // START SERVER
-// // ==========================================
-
-// const PORT = Number(
-//   process.env.PORT || 5000
-// );
-
-// const startServer = async () => {
-//   try {
-
-//     // Connect MongoDB
-//     await connectDB();
-
-//     // Start HTTP server
-//     app.listen(PORT, () => {
-
-//       console.log("");
-//       console.log(
-//         "=========================================="
-//       );
-//       console.log(
-//         `Server running on http://localhost:${PORT}`
-//       );
-//       console.log(
-//         `Health: http://localhost:${PORT}/api/health`
-//       );
-//       console.log(
-//         `Contact: POST http://localhost:${PORT}/api/contact`
-//       );
-//       console.log(
-//         "=========================================="
-//       );
-//       console.log("");
-//     });
-
-//     // Verify email service
-//     await verifyMailConnection();
-
-//   } catch (error) {
-
-//     console.error(
-//       "Server startup failed:",
-//       error.message
-//     );
-
-//     process.exit(1);
-//   }
-// };
-
-
-// startServer();
-
-
-
-
-
-
-
-// --------------------------fix -----------------
-
-
 
 
 import "dotenv/config";
@@ -292,45 +67,59 @@ app.use(
 
 
 // ======================================================
-// CORS
-// ======================================================
+ // CORS CONFIGURATION — FIXED
+ // ======================================================
 
-const allowedOrigins = (
-  process.env.FRONTEND_URL ||
-  "http://localhost:5173"
-)
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = [
+  "https://www.siddiquilawassociates.in",
+  "https://siddiquilawassociates.in",
+  "http://localhost:5173",
+  ...(process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+]
+  .map((origin) => origin.replace(/\/+$/, ""))
+  .filter((origin, index, origins) =>
+    origins.indexOf(origin) === index
+  );
 
 app.use(
   cors({
     origin: (origin, callback) => {
-
-      // Postman / server-to-server requests
+      // Allow requests without an Origin header
+      // (for example, server-to-server requests).
       if (!origin) {
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      const normalizedOrigin = origin.replace(/\/+$/, "");
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
 
-      return callback(
-        new Error("CORS origin not allowed")
-      );
+      console.error("CORS blocked origin:", origin);
+
+      return callback(new Error("CORS origin not allowed"));
     },
 
     methods: [
       "GET",
       "POST",
-      "OPTIONS"
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
     ],
 
     allowedHeaders: [
       "Content-Type",
-      "Authorization"
-    ]
+      "Authorization",
+    ],
+
+    credentials: true,
+    optionsSuccessStatus: 204,
   })
 );
 
